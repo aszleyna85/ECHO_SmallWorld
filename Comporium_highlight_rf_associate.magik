@@ -1,0 +1,158 @@
+#_method echo_lite.ecv_highlight_rf_assoc()
+_method echo_lite.ecv_highlight_rf_assoc()
+
+	_local cmv << smallworld_product.pni_application().manager.current_map_view
+	_local miss_associate << rope.new()
+	
+	_local amplifiers << dbv[:amplifier].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over amplifiers.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local splices << dbv[:coaxial_splice].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over splices.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local splitters << dbv[:coaxial_splitter].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over splitters.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local iles << dbv[:in_line_equalizer].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over iles.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local o_nodes << dbv[:optical_node].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over o_nodes.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	
+	_local p_blocks << dbv[:power_block].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over p_blocks.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local p_inserters << dbv[:power_inserter].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over p_inserters.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local p_supplies << dbv[:power_supply].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over p_supplies.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local taps << dbv[:tap].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over taps.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	_local terminators << dbv[:terminator].select(predicate.within(:location,pam.current_map_view.current_view_bounds))
+	_for a_rec _over terminators.elements()
+	_loop
+		_if a_rec.associated_structure _isnt _unset 
+		_then
+			line_sector << sector.new_with(a_rec.location.coord,a_rec.associated_structure.location.coord)
+			my_pseudo << pseudo_chain.new_for_world(line_sector,v.world)
+			my_pseudo.style_info << line_style.new(colour.called(:gold),5)
+			cmv.draw_geometry(my_pseudo)
+		_else
+			miss_associate.add(a_rec)
+		_endif
+	_endloop
+	
+	# Now taking care those missing association objects
+	_for i _over miss_associate.elements()
+	_loop
+		my_pseudo << pseudo_point.new_for_world(i.location.coord,v.world).buffer(350)
+		my_pseudo.style_info << fill_style.new_wash(colour.called(:red),50)
+		cmv.draw_geometry(my_pseudo)
+	_endloop
+_endmethod
+$
+echo_lite.register_tool(:CO,:ecv_highlight_rf_assoc,:|ecv_highlight_rf_assoc()|,"Highlight RF Assoc")
+$
