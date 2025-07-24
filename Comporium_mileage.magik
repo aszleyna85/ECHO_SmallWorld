@@ -1,0 +1,65 @@
+_method echo_lite.ecom_miles_new()
+	## 
+	##
+
+	_local !print_float_precision! << 10
+	#_local coax_tbl << dbv[:coaxial_cable].select(predicate.within(:route,pam.trail.as_pseudo_geometry))
+	_local aerial_tbl << _self.get_geoms_within_trail({:aerial_route}).rwo_set()
+	_local ug_tbl << _self.get_geoms_within_trail({:underground_route}).rwo_set()
+
+#	coax_lengths << unit_value(0,:m)
+#	route_lengths << unit_value(0,:mm)
+#	coax_assoc << unit_value(0,:mm)
+	aerial_lgth << unit_value(0,:mm)
+	ug_lgth << unit_value(0,:mm)
+
+
+	_for a _over aerial_tbl.elements()
+	_loop
+		aerial_lgth + << a.calculated_length
+	_endloop
+
+	_for b _over ug_tbl.elements()
+	_loop
+		ug_lgth + << b.calculated_length
+	_endloop
+	
+
+	#_for a_coax _over coax_tbl.elements()
+	#_loop
+	#	coax_lengths + << a_coax.calculated_length
+	#_endloop
+
+	#_for a_route _over route_tbl.elements()
+	#_loop
+		#_if a_route.measured_length _isnt _unset 
+		#_then
+		#	route_lengths + << a_route.calculated_length
+		#_endif
+		
+	#_endloop
+
+	#_for a_route _over route_tbl.elements()
+	#_loop
+	#_for c _over a_route.cables().elements()
+	#_loop
+	#	_if c.rwo_type = :coaxial_cable
+	#	_then
+	#		coax_assoc + << a_route.calculated_length
+	#	_endif
+	#	_endloop
+	#_endloop
+	
+	_self.show_message("Total mileage Underground/Aerial Civil Structure",newline_char,
+			   "--------------------------------",newline_char,
+			   "Aerial Route ",aerial_lgth.convert_to(:mile).write_string, newline_char,
+			   "Underground Route: ",ug_lgth.convert_to(:mile).write_string)
+_endmethod
+$
+echo_lite.register_tool(:CO,:ecom_miles_new,:|ecom_miles_new()|,"Calculate Miles_2")
+$
+#read_message_patch(:echo_tools_plugin)
+#$
+#:ecom_miles                           :en_gb Total mileage RF/Civil
+#:ecom_miles_tooltip                   :en_gb Total mileage RF/Civil
+#$
