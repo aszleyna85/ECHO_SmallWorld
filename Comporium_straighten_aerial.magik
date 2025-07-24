@@ -1,0 +1,33 @@
+#_package sw
+$
+_pragma(classify_level=restricted, topic={echo, production}, usage={internal})
+_method echo_lite.ecom_straighten_aer()
+
+	_local aer_tbl << dbv[:aerial_route].select(predicate.within(:route,pam.trail.as_pseudo_geometry))
+	_local my_transactions << rope.new()
+	
+	_for a_aer _over aer_tbl.fast_elements()
+	_loop
+		_if (z << a_aer.route.sectors.an_element().size) > 2
+		_then
+			start_coord << a_aer.route.sectors.an_element()[1]
+			last_coord << a_aer.route.sectors.an_element()[z]
+			
+			line_sector << sector.new_with(start_coord,last_coord)
+			my_transactions.add(record_transaction.new_update(a_aer,property_list.new_with(:route,line_sector)))
+		_endif
+	_endloop
+	
+	_if _not my_transactions.empty?	
+	_then	
+		results << dataset_transaction.new(my_transactions, write_string("Update ",my_transactions.size, " aerial route")).run()
+	_endif
+_endmethod
+$
+echo_lite.register_tool(:CO,:ecom_straighten_aer,:|ecom_straighten_aer()|,"Straighten Aerial")
+$
+#read_message_patch(:echo_tools_plugin)
+#$
+#:ecom_straighten_aer                           :en_gb Straighten Aerial Route
+#:ecom_straighten_aer_tooltip                   :en_gb Straighten Aerial Route
+#$
