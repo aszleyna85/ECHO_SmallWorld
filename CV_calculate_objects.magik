@@ -1,0 +1,253 @@
+#% text_encoding = iso8859_1
+###############################################################################
+##
+## Project        : CableVision 
+## Creation date  : 07.09.2015 rev 28.10.2015 rev 11.12.2015
+## Author         : Aslina
+## Description    : Calculate Objects               
+## Logs           : -                   
+##
+###############################################################################
+$
+echo_lite.options[:ecv_count_total_obj] << property_list.new_with(:dialog,_unset)
+
+_method echo_lite.ecv_count_total_obj()
+	
+	# Create interface
+	_if (f << _self.options[:ecv_count_total_obj][:dialog]) _isnt _unset 
+	_then
+		f.activate()
+	_else
+		f << frame.new("CV Total Object Counter")
+		p << panel.new(f)
+		label_item.new(p,"Please choose total objects you want to know in this node...")
+		p.start_row()
+		button_item.new(p,"RF Objects",_self,:int!rf_selection|()|,:min_width, 150)
+		button_item.new(p,"Strand and Structure Objects",_self,:int!strand_selection|()|,:min_width, 150)
+		button_item.new(p,"Building",_self,:int!containers_selection|()|,:min_width, 150)
+		button_item.new(p,"Address",_self,:int!address_selection|()|,:min_width, 150)
+		button_item.new(p,"Text",_self,:int!drafting_text|()|,:min_width, 150)
+		_self.options[:ecv_count_total_obj][:dialog] << f
+		f.activate()
+	_endif
+_endmethod
+$
+## RF
+_method echo_lite.int!rf_selection()
+
+	amp_tbl << ieq_tbl << tap_tbl << splice_tbl << splitter_tbl << opnode_tbl << segnode_tbl << pb_tbl << pi_tbl << tmtr_tbl << coax_tbl << int_spltr_tbl << 0
+	amp_tbl << dbv[:amplifier].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	ieq_tbl << dbv[:in_line_equalizer].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	tap_tbl << dbv[:tap].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	splice_tbl << dbv[:coaxial_splice].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	splitter_tbl << dbv[:coaxial_splitter].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	opnode_tbl << dbv[:optical_node].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	segnode_tbl << dbv[:mit_terminal_enclosure].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	pb_tbl << dbv[:power_block].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	pi_tbl << dbv[:power_inserter].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	ps_tbl << dbv[:power_supply].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	tmtr_tbl << dbv[:terminator].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	coax_tbl << dbv[:coaxial_cable].select(predicate.within(:route,pam.trail.as_pseudo_geometry)).size
+	int_spltr_tbl << dbv[:internal_splitter].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	buildings << dbv[:building].select(predicate.within(:boundary,pam.trail.as_pseudo_geometry))
+
+	# Check internal building
+	#_for a_bldg _over buildings.fast_elements()
+	#_loop
+	#_if a_bldg.has_internals?
+	#_then
+	#	amp_tbl + << dbv[:amplifier].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#			ieq_tbl + << dbv[:in_line_equalizer].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		tap_tbl + << dbv[:tap].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		splice_tbl + << dbv[:coaxial_splice].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		splitter_tbl + << dbv[:coaxial_splitter].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		opnode_tbl + << dbv[:optical_node].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		segnode_tbl+ << dbv[:mit_terminal_enclosure].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		pb_tbl + << dbv[:power_block].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		pi_tbl + << dbv[:power_inserter].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		ps_tbl + << dbv[:power_supply].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		tmtr_tbl + << dbv[:terminator].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		coax_tbl + << dbv[:coaxial_cable].select(predicate.within(:route,a_bldg.mit_building_structure.box)).size
+	#		int_spltr_tbl + << dbv[:internal_splitter].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#	_endif
+	#_endloop
+
+	_self.show_message("RF Objects",newline_char,
+			   "--------------------------------",newline_char,
+			   "Amplifier: ",amp_tbl, newline_char,
+			   "Inline EQ: ",ieq_tbl, newline_char,
+			   "Tap: ",tap_tbl, newline_char,
+			   "Coaxial Splice: ",splice_tbl, newline_char,
+			   "Coaxial Splitter: ",splitter_tbl, newline_char,
+			   "Optical Node: ",opnode_tbl, newline_char,
+			   "Segmentable Node: ",segnode_tbl, newline_char,
+			   "Power Block: ",pb_tbl, newline_char,
+			   "Power Inserter: ",pi_tbl, newline_char,
+			   "Power Supply: ",ps_tbl, newline_char,
+			   "Terminator: ",tmtr_tbl, newline_char,
+			   "Internal Splitter: ",int_spltr_tbl, newline_char,
+			   "Coaxial Cable: ",coax_tbl, newline_char,
+			   "--------------------------------",newline_char,
+			   "Total RF Objects: ",(amp_tbl+ieq_tbl+tap_tbl+splice_tbl+splitter_tbl+opnode_tbl+segnode_tbl+pb_tbl+pi_tbl+ps_tbl+tmtr_tbl+coax_tbl+int_spltr_tbl),newline_char,
+			   "Total RF Objects (without coax cable): ",(amp_tbl+ieq_tbl+tap_tbl+splice_tbl+splitter_tbl+opnode_tbl+segnode_tbl+pb_tbl+pi_tbl+ps_tbl+tmtr_tbl+int_spltr_tbl))
+_endmethod
+$
+
+## Strand Structure
+_method echo_lite.int!strand_selection()
+
+	pol_tbl << aer_tbl << ug_tbl  << int_rt_tbl << rsr_tbl << uub_tbl << poi_tbl << msj_tbl << ap_tbl << count_tbl << csd_tbl << 0
+	pol_tbl << dbv[:pole].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	aer_tbl << dbv[:aerial_route].select(predicate.within(:route,pam.trail.as_pseudo_geometry)).size
+	ug_tbl  << dbv[:underground_route].select(predicate.within(:route,pam.trail.as_pseudo_geometry)).size
+	#int_rt_tbl << dbv[:mdu_route].select(predicate.within(:route,pam.trail.as_pseudo_geometry)).size
+	rsr_tbl << dbv[:riser].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	uub_tbl << dbv[:uub].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	#lbox_tbl << dbv[:lockbox].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	msj_tbl << dbv[:midspan_junction].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	poi_tbl << dbv[:point_of_interest].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	ap_tbl << dbv[:access_point].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	count_tbl << dbv[:count].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	csd_tbl << dbv[:comp_drop].select(predicate.within(:route,pam.trail.as_pseudo_geometry)).size
+	#dt_con_note << dbv[:drafting_texts].select(predicate.within(:text_3,pam.trail.as_pseudo_geometry)).size
+	#dt_add_note << dbv[:drafting_texts].select(predicate.within(:text_5,pam.trail.as_pseudo_geometry)).size
+	#dt_eol_note << dbv[:drafting_texts].select(predicate.within(:text_9,pam.trail.as_pseudo_geometry)).size
+	#dp_wifi  << dbv[:drafting_points].select(predicate.within(:point_9,pam.trail.as_pseudo_geometry)).size
+	#dp_count << dbv[:drafting_points].select(predicate.within(:point_10,pam.trail.as_pseudo_geometry)).size
+	#dl_lines << dbv[:drafting_lines].select(predicate.within(:line_4,pam.trail.as_pseudo_geometry)).size
+	#buildings << dbv[:building].select(predicate.within(:boundary,pam.trail.as_pseudo_geometry))
+
+	# Check internal building
+	#	_for a_bldg _over buildings.fast_elements()
+	#_loop
+	#	_if a_bldg.has_internals?
+	#	_then
+	#		pol_tbl + << dbv[:pole].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		aer_tbl + << dbv[:aerial_route].select(predicate.within(:route,a_bldg.mit_building_structure.box)).size
+	#		ug_tbl  + << dbv[:underground_route].select(predicate.within(:route,a_bldg.mit_building_structure.box)).size
+	#		int_rt_tbl + << dbv[:mdu_route].select(predicate.within(:route,a_bldg.mit_building_structure.box)).size
+	#		rsr_tbl + << dbv[:riser].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		uub_tbl + << dbv[:uub].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		lbox_tbl+ << dbv[:lockbox].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		msj_tbl + << dbv[:midspan_junction].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		ap_tbl  + << dbv[:access_point].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		count_tbl + << dbv[:count].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#		
+	#		dt_con_note + << dbv[:drafting_texts].select(predicate.within(:text_3,a_bldg.mit_building_structure.box)).size
+	#		dt_add_note + << dbv[:drafting_texts].select(predicate.within(:text_5,a_bldg.mit_building_structure.box)).size
+	#		dt_eol_note + << dbv[:drafting_texts].select(predicate.within(:text_9,a_bldg.mit_building_structure.box)).size
+	#		dp_wifi +  << dbv[:drafting_points].select(predicate.within(:point_9,a_bldg.mit_building_structure.box)).size
+	#		dp_count + << dbv[:drafting_points].select(predicate.within(:point_10,a_bldg.mit_building_structure.box)).size
+	#		dl_lines + << dbv[:drafting_lines].select(predicate.within(:line_4,a_bldg.mit_building_structure.box)).size
+	#	_endif 
+	#_endloop
+	
+	_self.show_message("Strand & Structure Objects",newline_char,
+			   "--------------------------------",newline_char,
+			   "Pole: ",pol_tbl, newline_char,
+			   "Aerial Route: ",aer_tbl, newline_char,
+			   "UG Route: ",ug_tbl, newline_char,
+			   "Riser: ",rsr_tbl, newline_char,
+			   "UUB: ",uub_tbl, newline_char,
+			   "Midspan Junction: ",msj_tbl, newline_char,
+			   "Access Point: ",ap_tbl, newline_char,
+			   "Count: ",count_tbl, newline_char,
+			   "Point of Interest: ",poi_tbl, newline_char,
+			   "Custom Drop: ",csd_tbl, newline_char,
+			   "--------------------------------",newline_char,
+			   "Total Strand & Structures: ",(pol_tbl+aer_tbl+ug_tbl+rsr_tbl+uub_tbl+msj_tbl+ap_tbl+count_tbl+poi_tbl+csd_tbl))
+	_endmethod
+$
+## Containers
+_method echo_lite.int!containers_selection()
+
+	bdg_tbl << hub_tbl << 0
+	bdg_tbl << dbv[:building].select(predicate.within(:boundary,pam.trail.as_pseudo_geometry)).size
+	hub_tbl << dbv[:mit_hub].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	
+	_self.show_message("Containers Objects",newline_char,
+			   "--------------------------------",newline_char,
+			   "Hub: ",hub_tbl, newline_char,
+			   "Building: ",bdg_tbl, newline_char,
+			   "--------------------------------",newline_char,
+			   "Total Containers Objects: ",(hub_tbl+bdg_tbl))
+_endmethod
+$
+## Address
+_method echo_lite.int!address_selection()
+		
+	add_tbl << 0
+	add_tbl << dbv[:address].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
+	buildings << dbv[:building].select(predicate.within(:boundary,pam.trail.as_pseudo_geometry))
+
+	# Check internal building
+	#_for a_bldg _over buildings.fast_elements()
+	#_loop
+	#	_if a_bldg.has_internals?
+	#	_then
+	#		add_tbl + << dbv[:address].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#	_endif 
+	#_endloop
+	
+	_self.show_message("Total Address: ",add_tbl)
+_endmethod
+$
+
+## Text Only
+_method echo_lite.int!drafting_text()
+
+	t_1 << t_2 << t_3 << t_4 << t_5 << t_6 << t_7 << t_8 << t_9 << t_10 << t_11 << t_12 << t_13 << t_14 << t_15 << land_anno << bldg_anno << 0
+	t_1 << dbv[:drafting_texts].select(predicate.within(:text_1,pam.trail.as_pseudo_geometry)).size
+	t_2 << dbv[:drafting_texts].select(predicate.within(:text_2,pam.trail.as_pseudo_geometry)).size
+	t_3 << dbv[:drafting_texts].select(predicate.within(:text_3,pam.trail.as_pseudo_geometry)).size
+	t_4 << dbv[:drafting_texts].select(predicate.within(:text_4,pam.trail.as_pseudo_geometry)).size
+	t_5 << dbv[:drafting_texts].select(predicate.within(:text_5,pam.trail.as_pseudo_geometry)).size
+	t_6 << dbv[:drafting_texts].select(predicate.within(:text_6,pam.trail.as_pseudo_geometry)).size
+	t_7 << dbv[:drafting_texts].select(predicate.within(:text_7,pam.trail.as_pseudo_geometry)).size
+	t_8 << dbv[:drafting_texts].select(predicate.within(:text_8,pam.trail.as_pseudo_geometry)).size
+	t_9 << dbv[:drafting_texts].select(predicate.within(:text_9,pam.trail.as_pseudo_geometry)).size
+	t_10 << dbv[:drafting_texts].select(predicate.within(:text_10,pam.trail.as_pseudo_geometry)).size
+	t_11 << dbv[:drafting_texts].select(predicate.within(:text_11,pam.trail.as_pseudo_geometry)).size
+	t_12 << dbv[:drafting_texts].select(predicate.within(:text_12,pam.trail.as_pseudo_geometry)).size
+	t_13 << dbv[:drafting_texts].select(predicate.within(:text_13,pam.trail.as_pseudo_geometry)).size
+	t_14 << dbv[:drafting_texts].select(predicate.within(:text_14,pam.trail.as_pseudo_geometry)).size
+	t_15 << dbv[:drafting_texts].select(predicate.within(:text_15,pam.trail.as_pseudo_geometry)).size
+	bldg_anno << dbv[:building].select(predicate.within(:annotation_1,pam.trail.as_pseudo_geometry)).size
+	land_anno << dbv[:comp_landbase_annotation].select(predicate.within(:annotation,pam.trail.as_pseudo_geometry)).size
+	# Check internal building
+	#_for a_bldg _over buildings.fast_elements()
+	#_loop
+	#	_if a_bldg.has_internals?
+	#	_then
+	#		add_tbl + << dbv[:address].select(predicate.within(:location,a_bldg.mit_building_structure.box)).size
+	#	_endif 
+	#_endloop
+	
+	_self.show_message("Text Only",newline_char,
+			   "--------------------------------",newline_char,
+			   "text_1: ",t_1, newline_char,
+			   "text_2: ",t_2, newline_char,
+			   "text_3: ",t_3, newline_char,
+			   "text_4: ",t_4, newline_char,
+			   "text_5: ",t_5, newline_char,
+			   "text_6: ",t_6, newline_char,
+			   "text_7: ",t_7, newline_char,
+			   "text_8: ",t_8, newline_char,
+			   "text_9: ",t_9, newline_char,
+			   "text_10: ",t_10, newline_char,
+			   "text_11: ",t_11, newline_char,
+			   "text_12: ",t_12, newline_char,
+			   "text_13: ",t_13, newline_char,
+			   "text_14: ",t_14, newline_char,
+			   "text_15: ",t_15, newline_char,
+			   "Landbase Annotation: ",land_anno, newline_char,
+			   "Building Annotation: ",bldg_anno, newline_char,
+			   
+			   "--------------------------------",newline_char,
+			   "Total Text: ",(t_1+t_2+t_3+t_4+t_5+t_6+t_7+t_8+t_9+t_10+t_11+t_12+t_13+t_14+t_15+land_anno+bldg_anno))
+	
+_endmethod
+$
+
+echo_lite.register_tool(:CO,:ecv_count_total_obj,:|ecv_count_total_obj()|,"Calculate Total Objects")
+$
