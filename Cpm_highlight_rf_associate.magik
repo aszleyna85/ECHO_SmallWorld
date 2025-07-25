@@ -1,3 +1,13 @@
+###############################################################################
+##
+## Project        : Comporium
+## Creation date  : 
+## Author         : Aslina
+## Description    : Highlights RF objects association to the structure            
+## Logs           : -                   
+##
+###############################################################################
+
 #_method prod_lite.ecv_highlight_rf_assoc()
 _method prod_lite.ecv_highlight_rf_assoc()
 
