@@ -1,7 +1,17 @@
+###############################################################################
+##
+## Project        : Comporium
+## Creation date  : 
+## Author         : Aslina
+## Description    : Straighten aerial route          
+## Logs           : -                   
+##
+###############################################################################
+
 #_package sw
 $
-_pragma(classify_level=restricted, topic={echo, production}, usage={internal})
-_method echo_lite.ecom_straighten_aer()
+_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_lite.ecom_straighten_aer()
 
 	_local aer_tbl << dbv[:aerial_route].select(predicate.within(:route,pam.trail.as_pseudo_geometry))
 	_local my_transactions << rope.new()
@@ -24,9 +34,9 @@ _method echo_lite.ecom_straighten_aer()
 	_endif
 _endmethod
 $
-echo_lite.register_tool(:CO,:ecom_straighten_aer,:|ecom_straighten_aer()|,"Straighten Aerial")
+prod_lite.register_tool(:CO,:ecom_straighten_aer,:|ecom_straighten_aer()|,"Straighten Aerial")
 $
-#read_message_patch(:echo_tools_plugin)
+#read_message_patch(:prod_tools_plugin)
 #$
 #:ecom_straighten_aer                           :en_gb Straighten Aerial Route
 #:ecom_straighten_aer_tooltip                   :en_gb Straighten Aerial Route
