@@ -1,4 +1,14 @@
-_method echo_lite.ecom_miles_new()
+###############################################################################
+##
+## Project        : Comporium
+## Creation date  : 
+## Author         : Aslina
+## Description    : Calculate mileages of ug and aerial routes          
+## Logs           : -                   
+##
+###############################################################################
+
+_method prod_lite.ecom_miles_new()
 	## 
 	##
 
@@ -56,9 +66,9 @@ _method echo_lite.ecom_miles_new()
 			   "Underground Route: ",ug_lgth.convert_to(:mile).write_string)
 _endmethod
 $
-echo_lite.register_tool(:CO,:ecom_miles_new,:|ecom_miles_new()|,"Calculate Miles_2")
+prod_lite.register_tool(:CO,:ecom_miles_new,:|ecom_miles_new()|,"Calculate Miles_2")
 $
-#read_message_patch(:echo_tools_plugin)
+#read_message_patch(:prod_tools_plugin)
 #$
 #:ecom_miles                           :en_gb Total mileage RF/Civil
 #:ecom_miles_tooltip                   :en_gb Total mileage RF/Civil
