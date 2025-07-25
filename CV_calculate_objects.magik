@@ -9,9 +9,9 @@
 ##
 ###############################################################################
 $
-echo_lite.options[:ecv_count_total_obj] << property_list.new_with(:dialog,_unset)
+prod_lite.options[:ecv_count_total_obj] << property_list.new_with(:dialog,_unset)
 
-_method echo_lite.ecv_count_total_obj()
+_method prod_lite.ecv_count_total_obj()
 	
 	# Create interface
 	_if (f << _self.options[:ecv_count_total_obj][:dialog]) _isnt _unset 
@@ -33,7 +33,7 @@ _method echo_lite.ecv_count_total_obj()
 _endmethod
 $
 ## RF
-_method echo_lite.int!rf_selection()
+_method prod_lite.int!rf_selection()
 
 	amp_tbl << ieq_tbl << tap_tbl << splice_tbl << splitter_tbl << opnode_tbl << segnode_tbl << pb_tbl << pi_tbl << tmtr_tbl << coax_tbl << int_spltr_tbl << 0
 	amp_tbl << dbv[:amplifier].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
@@ -94,7 +94,7 @@ _endmethod
 $
 
 ## Strand Structure
-_method echo_lite.int!strand_selection()
+_method prod_lite.int!strand_selection()
 
 	pol_tbl << aer_tbl << ug_tbl  << int_rt_tbl << rsr_tbl << uub_tbl << poi_tbl << msj_tbl << ap_tbl << count_tbl << csd_tbl << 0
 	pol_tbl << dbv[:pole].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
@@ -159,7 +159,7 @@ _method echo_lite.int!strand_selection()
 	_endmethod
 $
 ## Containers
-_method echo_lite.int!containers_selection()
+_method prod_lite.int!containers_selection()
 
 	bdg_tbl << hub_tbl << 0
 	bdg_tbl << dbv[:building].select(predicate.within(:boundary,pam.trail.as_pseudo_geometry)).size
@@ -174,7 +174,7 @@ _method echo_lite.int!containers_selection()
 _endmethod
 $
 ## Address
-_method echo_lite.int!address_selection()
+_method prod_lite.int!address_selection()
 		
 	add_tbl << 0
 	add_tbl << dbv[:address].select(predicate.within(:location,pam.trail.as_pseudo_geometry)).size
@@ -194,7 +194,7 @@ _endmethod
 $
 
 ## Text Only
-_method echo_lite.int!drafting_text()
+_method prod_lite.int!drafting_text()
 
 	t_1 << t_2 << t_3 << t_4 << t_5 << t_6 << t_7 << t_8 << t_9 << t_10 << t_11 << t_12 << t_13 << t_14 << t_15 << land_anno << bldg_anno << 0
 	t_1 << dbv[:drafting_texts].select(predicate.within(:text_1,pam.trail.as_pseudo_geometry)).size
@@ -249,5 +249,5 @@ _method echo_lite.int!drafting_text()
 _endmethod
 $
 
-echo_lite.register_tool(:CO,:ecv_count_total_obj,:|ecv_count_total_obj()|,"Calculate Total Objects")
+prod_lite.register_tool(:CO,:ecv_count_total_obj,:|ecv_count_total_obj()|,"Calculate Total Objects")
 $
