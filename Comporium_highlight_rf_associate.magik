@@ -1,5 +1,5 @@
-#_method echo_lite.ecv_highlight_rf_assoc()
-_method echo_lite.ecv_highlight_rf_assoc()
+#_method prod_lite.ecv_highlight_rf_assoc()
+_method prod_lite.ecv_highlight_rf_assoc()
 
 	_local cmv << smallworld_product.pni_application().manager.current_map_view
 	_local miss_associate << rope.new()
@@ -154,5 +154,5 @@ _method echo_lite.ecv_highlight_rf_assoc()
 	_endloop
 _endmethod
 $
-echo_lite.register_tool(:CO,:ecv_highlight_rf_assoc,:|ecv_highlight_rf_assoc()|,"Highlight RF Assoc")
+prod_lite.register_tool(:CO,:ecv_highlight_rf_assoc,:|ecv_highlight_rf_assoc()|,"Highlight RF Assoc")
 $
