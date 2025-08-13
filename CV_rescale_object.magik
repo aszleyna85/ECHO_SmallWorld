@@ -1,0 +1,1682 @@
+#% text_encoding = iso8859_1
+###############################################################################
+##
+## Project        : CableVision 
+## Creation date  : 9.12.2015
+## Author         : Aslina
+## Description    : Flexible rescale tool
+## Logs           : -
+##
+###############################################################################
+_package sw
+
+echo_tools_plugin.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
+#echo_lite.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
+
+_pragma(classify_level=restricted, topic={echo, production}, usage={internal})
+_method echo_tools_plugin.ecv_rescale_geometry()
+#_method echo_lite.ecv_rescale_geometry()
+	
+	# Create interface
+	_if (f << _self.options[:ecv_rescale_geometry][:dialog]) _isnt _unset 
+	_then
+		f.activate()
+	_else
+		f << frame.new("CV Rescale Tool")
+		p << panel.new(f)
+		label_item.new(p,"Tool to Rescale by: ")
+		p.start_row()
+		button_item.new(p,"Selection",_self,:int!ecv_rescale_by_selection|()|,:min_width, 75)
+		button_item.new(p,"Trail",_self,:int!ecv_rescale_by_trail|()|,:min_width, 75)
+		_self.options[:ecv_rescale_geometry][:dialog] << f
+		f.activate()
+	_endif
+_endmethod
+
+_method echo_tools_plugin.int!ecv_rescale_by_selection()
+#_method echo_lite.int!ecv_rescale_by_selection()
+	
+	pni_app << smallworld_product.pni_application()
+	paf_man << pni_app.manager
+	selected_objs << paf_man.current_selection
+	objects << rope.new()
+	my_transactions << rope.new()
+	num_updates << num_failed << 0
+	tp << paf.plugin(:transform_basic_plugin).sys!slot(:transform_plugin)
+	
+	_if selected_objs _is _unset
+	_then
+		pam.show_message("Please select at least one object/create trail")
+		_return
+	_else
+		_if selected_objs _isnt _unset 
+		_then
+			_for a _over selected_objs.fast_elements()
+			_loop
+				_if a.rwo.rwo_type = :underground_route
+				_then 
+					objects.add(a)
+				_elif a.rwo.rwo_type = :aerial_route
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :wifi_data_block
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :amp_data_block
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :coaxial_cable_annotation
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :drafting_texts
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :street_annotation
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :pole
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :port
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :address
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :drop
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :amplifier
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :midspan_junction
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :drafting_points
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :anchor
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :mit_terminal_enclosure
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :hi_leg
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :coaxial_splice
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :coaxial_splitter
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :in_line_equalizer
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :optical_node
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :power_block
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :power_inserter
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :power_supply
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :terminator
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :user_connection_point
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :count
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :riser
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :lockbox
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :ground
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :extension_arm
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :user_boundary_annotation
+				_then
+					objects.add(a)
+				_elif a.rwo.rwo_type = :tap
+				_then
+					objects.add(a)
+				# Start - Added by GP on 20-Apr-2016.
+				_elif a.rwo.rwo_type = :mdu_route
+				_then
+					_if a.rwo.annotation _isnt _unset 
+					_then
+						_if a.rwo.annotation.height ~= 0.2	  
+						_then
+							factor << 0.2/a.rwo.annotation.height
+							tp.scale_geom_by_factor(a.rwo.annotation,factor)
+							num_updates + << 1
+						_endif
+					_endif
+				# End - Added by GP on 20-Apr-2016.
+				_endif		
+			_endloop
+			
+			#start....
+			
+			_for an_obj_rwo _over objects.fast_elements()
+			_loop@next_obj
+				an_obj << an_obj_rwo.rwo
+				_if an_obj.rwo_type = :amp_data_block
+				_then
+					_if an_obj.location _is _unset _orif
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :wifi_data_block
+				_then
+					_if an_obj.location _is _unset _orif
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :coaxial_cable_annotation
+				_then
+					_if an_obj.annotation _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation _isnt _unset 
+						_then
+							_if an_obj.annotation.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation.height
+								tp.scale_geom_by_factor(an_obj.annotation,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :drafting_texts
+				_then
+					_if an_obj.text_9 _is _unset _orif
+					    an_obj.text_9.height = 0.5
+					_then
+						#do nothing
+					_else
+						factor << 0.5/an_obj.text_9.height
+						tp.scale_geom_by_factor(an_obj.text_9,factor)
+						num_updates + << 1
+					_endif
+					
+					_if an_obj.text_3 _is _unset _orif
+					    an_obj.text_3.height = 0.5 
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.text_3,property_list.new_with(:height,0.5)))
+						num_updates + << 1 	
+					_endif
+					
+					_if an_obj.text_5 _is _unset _orif
+					    an_obj.text_5.height = 0.6
+					_then
+						#do nothing
+					_else
+						factor << 0.6/an_obj.text_5.height
+						tp.scale_geom_by_factor(an_obj.text_5,factor)
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :street_annotation
+				_then
+					_if an_obj.annotation _is _unset _orif 
+					    an_obj.annotation.height = 0.5
+					_then
+						#do nothing
+					_else
+						factor << 0.5/an_obj.annotation.height
+						tp.scale_geom_by_factor(an_obj.annotation,factor)
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :pole
+				_then
+					_if an_obj.location.scale = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1 	
+					_endif
+					
+					_if an_obj.annotation_2 _is _unset _orif 
+					    an_obj.annotation_2.height = 0.5 
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+						num_updates + << 1
+					_endif
+					
+					_if an_obj.annotation_3 _is _unset _orif 
+					    an_obj.annotation_3.height = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation_3,property_list.new_with(:height,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :port
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :drop
+				_then
+					_if an_obj.annotation_2 _is _unset _orif
+					    an_obj.annotation_2.height = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :amplifier
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_1 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1 _isnt _unset 
+						_then
+							_if an_obj.annotation_1.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_1.height
+								tp.scale_geom_by_factor(an_obj.annotation_1,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_2 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_2 _isnt _unset 
+						_then
+							_if an_obj.annotation_2.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_2.height
+								tp.scale_geom_by_factor(an_obj.annotation_2,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :midspan_junction
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+					_endif
+					
+					_if an_obj.annotation _is _unset _orif
+					    an_obj.annotation.height = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :drafting_points
+				_then
+					_if an_obj.point_9 _is _unset _orif 
+					    an_obj.point_9.scale = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.point_9,property_list.new_with(:scale,0.5)))
+						num_updates + << 1	
+					_endif
+
+					_if an_obj.point_10 _is _unset _orif 
+					    an_obj.point_10.scale = 0.1
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.point_10,property_list.new_with(:scale,0.1)))
+						num_updates + << 1	
+					_endif
+					
+				_elif an_obj.rwo_type = :anchor
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :mit_terminal_enclosure
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_2 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_2 _isnt _unset 
+						_then
+							_if an_obj.annotation_2.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_2.height
+								tp.scale_geom_by_factor(an_obj.annotation_2,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :hi_leg
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5 
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :coaxial_splitter
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_2 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_2 _isnt _unset 
+						_then
+							_if an_obj.annotation_2.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_2.height
+								tp.scale_geom_by_factor(an_obj.annotation_2,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif  an_obj.rwo_type = :coaxial_splice
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :in_line_equalizer
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5 
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+					_endif
+					
+					_if an_obj.annotation _is _unset _orif 
+					    an_obj.annotation.height = 0.5
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :optical_node
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_1_ac_s1_t02 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1_ac_s1_t02 _isnt _unset 
+						_then
+							_if an_obj.annotation_1_ac_s1_t02.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_1_ac_s1_t02.height
+								tp.scale_geom_by_factor(an_obj.annotation_1_ac_s1_t02,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :power_block
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :power_inserter
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :power_supply
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_1 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1 _isnt _unset 
+						_then
+							_if an_obj.annotation_1.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_1.height
+								tp.scale_geom_by_factor(an_obj.annotation_1,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_2 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_2 _isnt _unset 
+						_then
+							_if an_obj.annotation_2.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_2.height
+								tp.scale_geom_by_factor(an_obj.annotation_2,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_3 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_3 _isnt _unset 
+						_then
+							_if an_obj.annotation_3.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_3.height
+								tp.scale_geom_by_factor(an_obj.annotation_3,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :terminator
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5 
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :user_connection_point
+				_then
+					_if an_obj.external_location _is _unset _orif 
+					    an_obj.external_location.scale ~= 0.5 		
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.external_location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :count
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+					
+					_if an_obj.annotation_potential _is _unset 
+					_then
+						#do nothing
+					_else 
+						_if an_obj.annotation_potential _isnt _unset _andif
+						    an_obj.annotation_potential.height ~= 0.5
+						_then
+							factor << 0.5/an_obj.annotation_potential.height
+							tp.scale_geom_by_factor(an_obj.annotation_potential,factor)
+							num_updates + << 1
+							_continue@next_obj
+						_endif
+					_endif
+					
+					_if an_obj.annotation_actual _is _unset
+					_then
+						#do nothing
+					_else 
+						_if an_obj.annotation_actual _isnt _unset _andif
+						    an_obj.annotation_actual.height ~= 0.5
+						_then
+							factor << 0.5/an_obj.annotation_actual.height
+							tp.scale_geom_by_factor(an_obj.annotation_actual,factor)
+							num_updates + << 1
+							_continue@next_obj
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :riser
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation_1 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1 _isnt _unset 
+						_then
+							_if an_obj.annotation_1.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation_1.height
+								tp.scale_geom_by_factor(an_obj.annotation_1,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :lockbox
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.2	  
+							_then
+								#skipped
+							_else
+								factor << 0.2/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.annotation _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation _isnt _unset 
+						_then
+							_if an_obj.annotation.height = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.annotation.height
+								tp.scale_geom_by_factor(an_obj.annotation,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :ground
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5 
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :extension_arm
+				_then 
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale ~= 0.5
+					_then
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+						num_updates + << 1
+						_continue@next_obj
+					_endif
+				_elif an_obj.rwo_type = :user_boundary_annotation
+				_then
+					_if an_obj.service_node_annotation _is _unset _orif 
+					    an_obj.service_node_annotation.height = 0.5
+					_then
+						#do nothing
+					_else
+						factor << 0.5/an_obj.service_node_annotation.height
+						tp.scale_geom_by_factor(an_obj.service_node_annotation,factor)
+						num_updates + << 1
+						_continue@next_obj	
+					_endif
+				_elif an_obj.rwo_type = :underground_route
+				_then
+					_if an_obj.annotation_1 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1 _isnt _unset 
+						_then
+							_if an_obj.annotation_1.height = 0.4	  
+							_then
+								#skipped
+							_else
+								factor << 0.4/an_obj.annotation_1.height
+								tp.scale_geom_by_factor(an_obj.annotation_1,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :aerial_route
+				_then
+					_if an_obj.annotation_1 _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.annotation_1 _isnt _unset 
+						_then
+							_if an_obj.annotation_1.height = 0.4	  
+							_then
+								#skipped
+							_else
+								factor << 0.4/an_obj.annotation_1.height
+								tp.scale_geom_by_factor(an_obj.annotation_1,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+
+					_if an_obj.guy_location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.guy_location _isnt _unset 
+						_then
+							_if an_obj.guy_location.scale = 0.4	  
+							_then
+								#skipped
+							_else
+								factor << 0.4/an_obj.guy_location.scale
+								tp.scale_geom_by_factor(an_obj.guy_location,factor)
+								num_updates + << 1
+								_continue@next_obj
+							_endif
+						_endif
+					_endif
+				_elif an_obj.rwo_type = :address
+				_then
+					_if an_obj.location _is _unset _orif 
+					    an_obj.location.scale = 0.75
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.75)))
+						num_updates + << 1	
+					_endif
+					
+					_if an_obj.annotation _is _unset _orif 
+					    an_obj.annotation.height = 0.75
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.75)))
+						num_updates + << 1  
+					_endif
+
+					_if an_obj.annotation _is _unset _orif 
+					    an_obj.annotation.just = 33
+					_then
+						#do nothing
+					_else
+						my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:just,33)))
+						num_updates + << 1  
+					_endif
+				_elif an_obj.rwo_type = :tap
+				_then
+					_if an_obj.location _is _unset 
+					_then
+						#skipped
+					_else
+						_if an_obj.location _isnt _unset 
+						_then
+							_if an_obj.location.scale = 0.5	  
+							_then
+								#skipped
+							_else
+								factor << 0.5/an_obj.location.scale
+								tp.scale_geom_by_factor(an_obj.location,factor)
+								num_updates + << 1
+							_endif
+						_endif
+					_endif
+					
+					_if an_obj.terminator_location _isnt _unset
+					_then
+						port_2 << an_obj.etp_get_port_by_number(2)
+						my_world << an_obj.location.world
+						tap_coord << an_obj.location.coord
+						term_coord << an_obj.terminator_location.coord
+						port_coord << port_2.location.coord
+						prev_orientation << an_obj.terminator_location.orientation
+						
+						_if an_obj.get_object_mapping_type() = "8 Port"
+						_then
+							an_obj.delete_terminator() #delete existing terminator
+							an_obj.place_terminator(port_coord,my_world)
+							an_obj.terminator_location.scale << 0.5
+							an_obj.terminator_location.orientation << prev_orientation
+							num_updates + << 1
+							_continue@next_obj
+							pam.refresh()
+						_elif an_obj.get_object_mapping_type() = "4 Port" _orif
+						      an_obj.get_object_mapping_type() = "2 Port"
+						_then
+							an_obj.delete_terminator() #delete existing terminator
+							an_obj.place_terminator(port_coord,my_world)
+							an_obj.terminator_location.scale << 0.5
+							an_obj.terminator_location.orientation << prev_orientation
+							num_updates + << 1
+							_continue@next_obj
+							pam.refresh()
+						_endif
+					_endif
+				_endif
+			_endloop
+			_if _not my_transactions.empty?
+			_then
+				results << dataset_transaction.new(my_transactions, write_string("Update Objects and Texts Scale")).run()
+			_endif
+		_endif
+	_endif
+	pam.refresh()
+_endmethod
+$
+_method echo_tools_plugin.int!ecv_rescale_by_trail()
+#_method echo_lite.int!ecv_rescale_by_trail()
+
+	my_transactions << rope.new()
+	num_updates << num_failed << num_warnings << 0
+	tp << paf.plugin(:transform_basic_plugin).sys!slot(:transform_plugin)
+	
+	update_tbl << _self.get_geoms_within_trail({:underground_route,
+						    :aerial_route,
+						    :amp_data_block,
+						    :wifi_data_block,
+						    :building,
+						    :coaxial_cable_annotation,
+						    :drafting_texts,
+						    :street_annotation,
+						    :pole,
+						    :mit_coaxial_cable_pin,
+						    :port,
+						    :address,
+						    :drop,
+						    :amplifier,
+						    :midspan_junction,
+						    :drafting_points,
+						    :anchor,
+						    :mit_terminal_enclosure,
+						    :hi_leg,
+						    :access_point,
+						    :coaxial_splice,
+						    :coaxial_splitter,
+						    :in_line_equalizer,
+						    :optical_node,
+						    :power_block,
+						    :power_inserter,
+						    :power_supply,
+						    :terminator,
+						    :user_connection_point,
+						    :count,
+						    :riser,
+						    :uub,
+						    :lockbox,
+						    :ground,
+						    :extension_arm,
+						    :user_boundary_annotation,
+						    :tap
+						   }, :within).rwo_set()
+
+	_if update_tbl.size = 0
+	_then
+		pam.show_message("Please select at least one object/create trail")
+		_return
+	_endif
+	
+	_for an_obj _over update_tbl.fast_elements()
+	_loop@next_obj
+		_if an_obj.rwo_type = :building
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.5  
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.connection_location _is _unset _orif 
+			    an_obj.connection_location.scale = 0.5  
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.connection_location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_1 _is _unset _orif 
+			    an_obj.annotation_1.height = 0.5  
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :amp_data_block
+		_then
+			_if an_obj.location _is _unset _orif
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :wifi_data_block
+		_then
+			_if an_obj.location _is _unset _orif
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :coaxial_cable_annotation
+		_then
+			_if an_obj.cable_annotation _is _unset _orif
+			    an_obj.cable_annotation.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.cable_annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :drafting_texts
+		_then
+			_if an_obj.text_9 _is _unset _orif
+			    an_obj.text_9.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.text_9,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.text_3 _is _unset _orif
+			    an_obj.text_3.height = 0.5 
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.text_3,property_list.new_with(:height,0.5)))
+				num_updates + << 1 	
+			_endif
+			
+			_if an_obj.text_5 _is _unset _orif
+			    an_obj.text_5.height = 0.6
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.text_5,property_list.new_with(:height,0.6)))
+				num_updates + << 1 
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :street_annotation
+		_then
+			_if an_obj.annotation _is _unset _orif 
+			    an_obj.annotation.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1 
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :pole
+		_then
+			_if an_obj.location.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1 	
+			_endif
+			
+			_if an_obj.annotation_2 _is _unset _orif 
+			    an_obj.annotation_2.height = 0.5 
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_3 _is _unset _orif 
+			    an_obj.annotation_3.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_3,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :mit_coaxial_cable_pin
+		_then 
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :port
+		_then
+			_if an_obj.location.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :drop
+		_then
+			_if an_obj.annotation_2 _is _unset _orif
+			    an_obj.annotation_2.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :amplifier
+		_then
+			_if an_obj.location.scale = 0.5
+			_then
+				#do nothing	
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1	
+			_endif
+			
+			_if an_obj.annotation_2.height = 0.5 
+			_then
+				#do nothing	
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1	
+			_endif
+			
+			_if an_obj.annotation_1 _is _unset _orif
+			    an_obj.annotation_1.height = 0.5
+			_then
+				#do nothing	
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.5)))
+				#an_obj.annotation_1.height << 0.5
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :midspan_junction
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation _is _unset _orif
+			    an_obj.annotation.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :drafting_points
+		_then
+			_if an_obj.point_9 _is _unset _orif 
+			    an_obj.point_9.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.point_9,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+
+			_if an_obj.point_10 _is _unset _orif 
+			    an_obj.point_10.scale = 0.1
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.point_10,property_list.new_with(:scale,0.1)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :anchor
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :mit_terminal_enclosure
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_2 _is _unset _orif 
+			    an_obj.annotation_2.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :hi_leg
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5 
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :access_point
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+
+			_if an_obj.inside_location _is _unset _orif 
+			    an_obj.inside_location.scale = 1.0
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.inside_location,property_list.new_with(:scale,0.5)))
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :coaxial_splitter
+		_then
+			_if an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_2 _is _unset _orif 
+			    an_obj.annotation_2.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif  an_obj.rwo_type = :coaxial_splice
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :in_line_equalizer
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5 
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation _is _unset _orif 
+			    an_obj.annotation.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :optical_node
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1	
+			_endif
+			
+			_if an_obj.annotation_1_ac_s1_t02 _is _unset _orif 
+			    an_obj.annotation_1_ac_s1_t02.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1_ac_s1_t02.height,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :power_block
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :power_inserter
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :power_supply
+		_then
+			_if an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_1.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_2.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_2,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_3.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_3,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :terminator
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5 
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :user_connection_point
+		_then
+			_if an_obj.external_location _is _unset _orif 
+			    an_obj.external_location.scale ~= 0.5 		
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.external_location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :count
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_potential _is _unset 
+			_then
+				#do nothing
+			_else 
+				_if an_obj.annotation_potential _isnt _unset _andif
+				    an_obj.annotation_potential.height ~= 0.5
+				_then
+					my_transactions.add(record_transaction.new_update(an_obj.annotation_potential,property_list.new_with(:height,0.5)))
+					num_updates + << 1
+					_continue@next_obj
+				_endif
+			_endif
+			
+			_if an_obj.annotation_actual _is _unset
+			_then
+				#do nothing
+			_else 
+				_if an_obj.annotation_actual _isnt _unset _andif
+				    an_obj.annotation_actual.height ~= 0.5
+				_then
+					my_transactions.add(record_transaction.new_update(an_obj.annotation_actual,property_list.new_with(:height,0.5)))
+					num_updates + << 1
+					_continue@next_obj
+				_endif
+			_endif
+		_elif an_obj.rwo_type = :riser
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_1 _is _unset _orif 
+			    an_obj.annotation_1.height ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :uub
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.5 
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation_1 _is _unset _orif 
+			    an_obj.annotation_1.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :lockbox
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.2
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.2)))
+				num_updates + << 1
+			_endif
+			
+			_if an_obj.annotation _is _unset _orif 
+			    an_obj.annotation.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :ground
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5 
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :extension_arm
+		_then 
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale ~= 0.5
+			_then
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.5)))
+				num_updates + << 1
+				_continue@next_obj
+			_endif
+		_elif an_obj.rwo_type = :user_boundary_annotation
+		_then
+			_if an_obj.service_node_annotation _is _unset _orif 
+			    an_obj.service_node_annotation.height = 0.5
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.service_node_annotation,property_list.new_with(:height,0.5)))
+				num_updates + << 1
+				_continue@next_obj	
+			_endif
+		_elif an_obj.rwo_type = :address
+		_then
+			_if an_obj.location _is _unset _orif 
+			    an_obj.location.scale = 0.75
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.location,property_list.new_with(:scale,0.75)))
+				num_updates + << 1	
+			_endif
+			
+			_if an_obj.annotation _is _unset _orif 
+			    an_obj.annotation.height = 0.75
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:height,0.75)))
+				num_updates + << 1  
+			_endif
+
+			_if an_obj.annotation _is _unset _orif 
+			    an_obj.annotation.just = 33
+			_then
+				#do nothing
+			_else
+				my_transactions.add(record_transaction.new_update(an_obj.annotation,property_list.new_with(:just,33)))
+				num_updates + << 1  
+			_endif
+		_elif an_obj.rwo_type = :underground_route
+		_then
+			_if an_obj.annotation_1 _is _unset 
+			_then
+				#skipped
+			_else
+				_if an_obj.annotation_1.height ~= 0.4
+				_then
+					my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.4)))
+					num_updates + << 1
+					_continue@next_obj
+				_endif
+			_endif
+		_elif an_obj.rwo_type = :aerial_route
+		_then
+			_if an_obj.annotation_1 _is _unset 
+			_then
+				#skipped
+			_else
+				_if an_obj.annotation_1.height = 0.4
+				_then
+					#do nothing
+				_else 
+					my_transactions.add(record_transaction.new_update(an_obj.annotation_1,property_list.new_with(:height,0.4)))
+					num_updates + << 1
+				_endif
+			_endif
+			
+			_if an_obj.guy_location _is _unset
+			_then
+				#do nothing
+			_else
+				_if an_obj.guy_location _isnt _unset _andif
+				    an_obj.guy_location.scale ~= 0.4
+				_then
+					my_transactions.add(record_transaction.new_update(an_obj.guy_location,property_list.new_with(:scale,0.4)))	
+					num_updates + << 1
+					_continue@next_obj
+				_endif	
+			_endif
+		_elif an_obj.rwo_type = :tap
+		_then
+			_if an_obj.location _is _unset 
+			_then
+				#skipped
+			_else
+				_if an_obj.location _isnt _unset 
+				_then
+					_if an_obj.location.scale = 0.5	  
+					_then
+						#skipped
+					_else 
+						factor << 0.5/an_obj.location.scale
+						tp.scale_geom_by_factor(an_obj.location,factor)
+						num_updates + << 1
+					_endif
+				_endif
+			_endif
+			
+			_if an_obj.terminator_location _isnt _unset
+			_then
+				port_2 << an_obj.etp_get_port_by_number(2)
+				my_world << an_obj.location.world
+				tap_coord << an_obj.location.coord
+				term_coord << an_obj.terminator_location.coord
+				port_coord << port_2.location.coord
+				prev_orientation << an_obj.terminator_location.orientation
+				
+				_if an_obj.get_object_mapping_type() = "8 Port"
+				_then
+					an_obj.delete_terminator() #delete existing terminator
+					an_obj.place_terminator(port_coord,my_world)
+					an_obj.terminator_location.scale << 0.5
+					an_obj.terminator_location.orientation << prev_orientation
+					num_updates + << 1
+					_continue@next_obj
+				_elif an_obj.get_object_mapping_type() = "4 Port" _orif
+				      an_obj.get_object_mapping_type() = "2 Port"
+				_then
+					an_obj.delete_terminator() #delete existing terminator
+					an_obj.place_terminator(port_coord,my_world)
+					an_obj.terminator_location.scale << 0.5
+					an_obj.terminator_location.orientation << prev_orientation
+					num_updates + << 1
+					_continue@next_obj
+				_endif
+			_endif
+		_endif
+	_endloop
+	
+	_if _not my_transactions.empty?
+	_then
+		results << dataset_transaction.new(my_transactions, write_string("Update Objects and Texts Scale")).run()
+	_endif
+	pam.refresh()
+_endmethod
+$
+_method transform_plugin.scale_geom_by_factor(a_geom,a_factor)
+	## Custom scale to avoid setting trail or selecting objects
+	## allows automation from bulk tool.
+	## Maintains RF connectivity during scaling but requires cable cleanup
+	## DO NOT use with Civil objects e.g. Lockbox as it ruins associated RF.
+	# J D Hatchell 5 Dec 2007
+
+	_self.start_transform(:scale,_false)
+	.manager.set_geometries({a_geom})
+	centre << a_geom.coord
+	_self.int!scale(a_factor, centre)
+	
+_endmethod
+$
+#echo_lite.register_tool(:scale,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:gis_write,"Production | Rescale Objects to Standard Required")
+echo_tools_plugin.register_tool(:general,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:trail_and_gis,:under_construction)
+$
