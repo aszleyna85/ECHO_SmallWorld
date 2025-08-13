@@ -10,12 +10,12 @@
 ###############################################################################
 _package sw
 
-echo_tools_plugin.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
-#echo_lite.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
+prod_tools_plugin.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
+#prod_lite.options[:ecv_rescale_geometry] << property_list.new_with(:dialog,_unset)
 
-_pragma(classify_level=restricted, topic={echo, production}, usage={internal})
-_method echo_tools_plugin.ecv_rescale_geometry()
-#_method echo_lite.ecv_rescale_geometry()
+_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_tools_plugin.ecv_rescale_geometry()
+#_method prod_lite.ecv_rescale_geometry()
 	
 	# Create interface
 	_if (f << _self.options[:ecv_rescale_geometry][:dialog]) _isnt _unset 
@@ -33,8 +33,8 @@ _method echo_tools_plugin.ecv_rescale_geometry()
 	_endif
 _endmethod
 
-_method echo_tools_plugin.int!ecv_rescale_by_selection()
-#_method echo_lite.int!ecv_rescale_by_selection()
+_method prod_tools_plugin.int!ecv_rescale_by_selection()
+#_method prod_lite.int!ecv_rescale_by_selection()
 	
 	pni_app << smallworld_product.pni_application()
 	paf_man << pni_app.manager
@@ -965,8 +965,8 @@ _method echo_tools_plugin.int!ecv_rescale_by_selection()
 	pam.refresh()
 _endmethod
 $
-_method echo_tools_plugin.int!ecv_rescale_by_trail()
-#_method echo_lite.int!ecv_rescale_by_trail()
+_method prod_tools_plugin.int!ecv_rescale_by_trail()
+#_method prod_lite.int!ecv_rescale_by_trail()
 
 	my_transactions << rope.new()
 	num_updates << num_failed << num_warnings << 0
@@ -1677,6 +1677,6 @@ _method transform_plugin.scale_geom_by_factor(a_geom,a_factor)
 	
 _endmethod
 $
-#echo_lite.register_tool(:scale,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:gis_write,"Production | Rescale Objects to Standard Required")
-echo_tools_plugin.register_tool(:general,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:trail_and_gis,:under_construction)
+#prod_lite.register_tool(:scale,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:gis_write,"Production | Rescale Objects to Standard Required")
+prod_tools_plugin.register_tool(:general,:ecv_rescale_geometry,:|ecv_rescale_geometry()|,:trail_and_gis,:under_construction)
 $
