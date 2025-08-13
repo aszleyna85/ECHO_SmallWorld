@@ -1,0 +1,145 @@
+
+#% text_encoding = iso8859_1
+###############################################################################
+##
+## Project        : CableVision 
+## Creation date  : 25.08.2015
+## Author         : Aslina
+## Description    : QC Wifi Datablock and Wifi Dot
+##                  
+## Logs           : -                   
+##
+###############################################################################
+#_package sw
+
+#_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_lite.ecv_qc_wifi_datablock_wifi_dot()
+	
+	_local amp << _self.get_geoms_within_trail({:amplifier}).rwo_set() #collection of amp
+	_local num_updates << num_failed << num_warnings << 0
+	_local my_transactions << rope.new()
+	
+	_for an_amp _over amp.fast_elements() #single amp over collection of amp
+	_loop
+		_if an_amp.spec_id = "Wf Cisco Omni 1572IC" _orif
+		    an_amp.spec_id = "Wf Cisco Dir 1572EC"
+#		    an_amp.spec_id = "Wf Cisco Dir 1572EC" _orif
+#		    an_amp.spec_id = "Wifi Cisco Dir" _orif
+#		    an_amp.spec_id = "Wifi Cisco Omni" _orif
+#		    an_amp.spec_id = "Wifi Omni" _orif
+#		    an_amp.spec_id = "Wifi Dir"
+		_then
+			wifi_blk << an_amp.wifi_data_blocks.an_element()  
+			
+			#check AOI number in wifi datablock
+			_if wifi_blk.cluster _is _unset 
+			_then
+				etp.log_error(:failed,wifi_blk,write_string("AOI number not found"))
+				num_failed + << 1
+			_else
+				_if wifi_blk.cluster.slice(1,4) ~= "AOI_"
+				_then
+					etp.log_error(:failed,wifi_blk,write_string("AOI number not match standard"))
+					num_failed + << 1
+				_endif	
+			_endif
+			
+			#check 5th character of PPT
+			_if wifi_blk.power_passing_tap[5] ~= %P
+			_then
+				etp.log_error(:failed,wifi_blk,write_string("Power Passing Tap 5th character is not 'P'"))
+				num_failed + << 1
+			_endif
+			
+			#check PPT object name should be same as in datablock
+			ppt << an_amp.prod_next_upstream_device()
+			_if ppt.rwo_type ~= :tap
+			_then
+				etp.log_error(:failed,ppt,write_string("Wifi Amplifier not connected to Power Passing Tap"))
+				num_failed + << 1
+			_else
+				_if ppt.spec_id.slice(6,8) ~= wifi_blk.power_passing_tap[1] + wifi_blk.power_passing_tap.slice(3,4)
+				_then
+					etp.log_error(:failed,wifi_blk,write_string("Wifi datablock PPT value should be: ", ppt.spec_id[6] + "W" + ppt.spec_id.slice(7,8) + "P"))
+					num_failed + << 1
+				_endif
+			_endif
+			
+			#check wifi dot near pole, result shown as no wifi dot found near to an amplifier
+			_if prod_lite.nearest_wifi_dot(an_amp) _is _unset
+			_then
+				#write("Wifi Dot not found")
+				num_failed + << 1
+			_endif
+		_endif
+	_endloop
+	etp.log_error(:info,_unset,write_string("QC Wifi Datablock & Wifi Dot"))
+	_self.show_message("QC Wifi Datablock & Wifi Dot",newline_char,
+			   "Number of failed : ",num_failed)
+	etp.refresh_condition_report()	
+_endmethod
+$
+prod_lite.register_tool(:wifi,:ecv_qc_wifi_datablock_wifi_dot,:|ecv_qc_wifi_datablock_wifi_dot()|,_unset,"QC | Wifi - Check Wifi Datablock and Wifi Dot")
+$
+
+_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_lite.nearest_wifi_dot(an_amp,_optional search_radius)
+	
+	pol << an_amp.get_structure()
+	search_radius << search_radius.default(4000)
+	
+	_if pol _is _unset _orif
+	    (my_loc << pol.location) _is _unset _orif
+	    (my_coord << my_loc.coord) _is _unset
+	_then
+		_self.show_message("Error: No location coord")
+		_return
+	_endif
+	
+	v << mit_manager.modelit_dataset
+	struct_collections << {:drafting_points}
+	bb << bounding_box.new_centred(my_coord.x, my_coord.y, search_radius)
+	frs << v.rwo_set().select(:collection,struct_collections)
+	fgs << frs.geometry_set(my_loc.world).select(:within, bb)
+	min_dist << sec_dist << search_radius/2
+	nearest_wifi_dot << next_dot << _unset
+	
+	_for an_rwo _over fgs.rwo_set().fast_elements()
+	_loop
+		#write(an_rwo)
+		_if (loc << an_rwo.point_9.coord) _is _unset
+		_then
+			_continue
+		_endif
+		
+		dist << my_coord.distance_to(loc)
+		_if dist < min_dist
+		_then
+			sec_dist << min_dist
+			next_dot << nearest_wifi_dot
+			min_dist << dist
+			nearest_wifi_dot << an_rwo
+		_elif	dist < sec_dist
+		_then
+			sec_dist << dist
+			next_dot << an_rwo
+		_endif
+	_endloop
+	
+	_if nearest_wifi_dot _is _unset
+	_then
+		etp.log_error(:failed,an_amp,write_string("Wifi dot not found"))
+		_return
+			
+	_elif next_dot _isnt _unset
+	_then
+		_if (diff << 100*(sec_dist-min_dist)/sec_dist) < 10 _andif
+		    diff > -10
+		_then
+			etp.log_error(:warning,pol,write_string("Extra wifi dot found"))
+		_endif
+	_endif
+	
+	_return nearest_wifi_dot
+_endmethod
+$
