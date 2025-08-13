@@ -1,0 +1,150 @@
+#% text_encoding = iso8859_1
+###############################################################################
+##
+## File name      : migrate_lot.magik
+## Creation date  : 09.06.2016 (update)
+## Author         : Aslina
+## Description    : Migrate lot from shape file
+##
+###############################################################################
+_package sw
+
+_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_tools_plugin.migrate_lot()
+
+	## Collect all lots from SOM shape file.
+
+	# Find the dataset(dwg/shape/etc...)
+	_local gpm << gis_program_manager
+	_local jm << gpm.cached_dataset(:test)
+	_local lv << gpm.cached_dataset(:land)
+	_local shapes << _self.get_geoms_within_trail({:shape_polygon},:interacting_with).rwo_set()
+	_local lot_collection << lv.collections[:gmsb_lot]
+	_local num_updates << 0
+
+	# First, delete incomplete infomation existing lot
+	lots_tbl << _self.get_geoms_within_trail({:gmsb_lot},:interacting_with).rwo_set()
+
+	_for a_lot _over lots_tbl.elements()
+	_loop
+		_if a_lot.pa_number _is _unset _orif a_lot.lot_number _is _unset 
+		_then
+			write("Delete unused lot, Lot Number: ",a_lot.lot_number," / PA Number: ",a_lot.pa_number)
+			record_transaction.new_delete(a_lot).run()
+		_endif
+	_endloop
+
+	#Clean table
+	new_tbl << _self.get_geoms_within_trail({:gmsb_lot},:interacting_with).rwo_set()
+
+	write("Start, total ",shapes.size, " shape_polygon found.")
+	
+	_for a_shape _over shapes.elements()
+	_loop@next_shape
+
+		#Debug
+		write("Proceed---",a_shape.lot,"---",a_shape.pa)
+
+		# If lot already exist then skip
+		recs << new_tbl.select(predicate.overlaps(:extent,a_shape.area))
+		overlap? << _false 
+				
+		_if recs.size > 0
+		_then
+			_for a_rec _over recs.fast_elements()
+			_loop
+				_if a_rec.lot_number = a_shape.lot _andif a_rec.pa_number = a_shape.pa
+				_then
+					write("--Existing lot found.")
+					_continue@next_shape
+				_else
+					overlap? << _true 
+				_endif
+			_endloop
+			
+			_if overlap? _is _true 
+			_then
+				write("Warning! Overlapping detected - ",a_shape.lot," -  ",a_shape.pa)
+			_endif
+		_endif
+		
+		num_of_sectors << a_shape.area.sectors.size
+		cr << sector.new()
+		
+		_for sect_num _over range(1,num_of_sectors)
+		_loop
+			a_sector << a_shape.area.sectors[sect_num]
+			a_size << a_sector.size
+		 
+			_for n _over range(1, a_size)
+			_loop
+				a_coord << a_sector[n]
+				cr.add_last(a_coord)
+			_endloop
+		_endloop
+
+		sr << sector_rope.new()
+		sr.add(cr)
+	 
+		a_geom << pseudo_area.new_for_world(sr, lv.world)
+
+		values << property_list.new_with( :lot_number,a_shape.lot,
+						  :pa_number,a_shape.pa,
+						  :category,"RESIDENTIAL",
+						  :extent,a_geom)
+		
+		record_transaction.new_insert(lot_collection,values).run()
+		num_updates + << 1
+	_endloop
+
+	write("Complete! ",num_updates," lot migrated.")
+
+	# Continue with insert annotation
+	_local lots << _self.get_geoms_within_trail({:gmsb_lot},:interacting_with).rwo_set()
+	
+	# Insert text
+	_for a_lot _over lots.fast_elements()
+	_loop@next_lot
+		_if a_lot.annotation _isnt _unset 
+		_then
+			_continue@next_lot
+		_endif
+		
+		new_coord << a_lot.extent.sectors.bounds.centre
+		
+		_if a_lot.lot_number _is _unset 
+		_then
+			ln << ""
+		_else
+			ln << a_lot.lot_number
+		_endif
+
+		_if a_lot.pa_number _is _unset 
+		_then
+			pn << ""
+		_else
+			pn << a_lot.pa_number
+		_endif
+		
+		new_string << ln+%newline+pn
+		a_lot.make_geometry(:annotation,new_coord,new_string)
+	_endloop
+_endmethod
+$
+#prod_tools_plugin.register_tool(:general,:migrate_lot,:|migrate_lot()|,"Migrate shape polygon to Lot")
+
+_block
+	str_tbl << etp.get_geoms_within_trail({:shape_arc},:interacting_with).rwo_set()
+	str_col << lv.collections[:lnd_street]
+	seg_col << lv.collections[:lnd_street_segment]
+	
+	_for s _over str_tbl.fast_elements()
+	_loop
+		# Insert street 
+		record_transaction.new_insert(street_col, property_list.new_with(:name,s.name).run()
+	_endloop	
+_endblock
+
+record_transaction.new_update(seg.source_collection,property_list.new_with(:class,s.name)).run()
+a << record_transaction.new_update(seg,property_list.new_with(:street_name,"Unknown")).run()
+$
