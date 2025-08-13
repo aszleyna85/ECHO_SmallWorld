@@ -1,0 +1,327 @@
+#% text_encoding = iso8859_1
+###############################################################################
+##
+## Project        : CableVision 
+## Creation date  : 09.01.2015
+## Author         : Aslina
+## Description    : Auto Path Naming
+## Logs           : 9 Jan, change path name "/" to "_".                   
+##
+###############################################################################
+#_package sw
+
+#_pragma(classify_level=restricted, topic={prod, production}, usage={internal})
+_method prod_lite.cv_rename_path()
+
+	_local sheaths << _self.get_geoms_within_trail({:sheath},:interacting_with).rwo_set()
+	_local num_updates << num_failed << 0
+	_local my_transactions << rope.new()
+	#_local out_stream << external_text_output_stream.new ("D:\paths.txt")
+
+	# Collect sheath
+	_for a_sheath _over sheaths.fast_elements()
+	_loop
+		# Check all path
+		_for a_path _over a_sheath.all_associated_paths().elements()
+		_loop@next_path
+			_local new_path_name << final_path_name <<_unset 
+			write("Old Name : ",a_path.name)
+			#out_stream.write("Old Name :",tab_char,a_path.name, newline_char)
+			
+			# 1.Change path name "/" to "_"
+			_if a_path.name.matches?("*/*")
+			_then
+				new_path_name << a_path.name.replace_substring("/","_")
+			_else
+				write("Skipped this - ",a_path.name,newline_char)
+				_continue@next_path
+			_endif
+
+			# 2.Rename path for those connect with segnode
+			_local this_sheath << _unset 
+			_local first_sheath << dbv[:sheath].at(a_path.ordered_fiber_propagations().first.sheath_id)
+			_local last_sheath << dbv[:sheath].at(a_path.ordered_fiber_propagations().last.sheath_id)
+
+			# 2a.Filter those sheath end connectivity problem
+			_if first_sheath.prod_get_downstream() _is _unset _orif
+			    last_sheath.prod_get_downstream() _is _unset
+			_then
+				etp.log_error(:failed,a_path,write_string("Sheath end not connect with Segnode/Optical Node"))
+				num_failed + << 1
+				write("Skipped this - ",a_path.name,newline_char)
+				_continue@next_path
+			_endif
+
+			# 2b.Filter those path end at splice closure
+			_if first_sheath.prod_get_downstream().rwo_type = :splice_closure _andif
+			    last_sheath.prod_get_downstream().rwo_type = :splice_closure
+			_then
+				my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+														 :user_department,"Dept. 1",
+														 :user_service_status,"Spare")))
+				num_updates + << 1
+				write("New Name : ",new_path_name,newline_char)
+				_continue@next_path
+			_endif
+
+			# 2c. Filter those connect to optical node
+			_if first_sheath.prod_get_downstream().rwo_type = :optical_node _orif
+			    last_sheath.prod_get_downstream().rwo_type = :optical_node
+			_then
+				_if a_path.rwuk_lightpath_circuits.size > 0
+				_then
+					# For fiber monitoring
+					_if a_path.rwuk_lightpath_circuits.an_element().customer_name = "Fiber monitoring"
+					_then
+						my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+																 :user_department,"Dept. 5",
+																 :user_service_status,"In Service")))
+						num_updates + << 1
+					_else
+						my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+																 :user_department,"HFC",
+																 :user_service_status,"In Service")))
+						num_updates + << 1
+					_endif
+				_else
+					my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+														 :user_department,"HFC",
+														 :user_service_status,"Spare")))
+					num_updates + << 1
+				_endif
+				write("New Name : ",new_path_name,newline_char)
+				_continue@next_path
+			_endif
+
+			# 2d. Filter those connect to building
+			_if first_sheath.prod_get_downstream().rwo_type = :building _orif
+			    last_sheath.prod_get_downstream().rwo_type = :building
+			_then
+				_if a_path.rwuk_lightpath_circuits.size > 0
+				_then
+					my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+														 :user_department,"Lightpath",
+														 :user_service_status,"In Service")))
+					num_updates + << 1
+				_else
+					my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,new_path_name,
+														 :user_department,"HFC",
+														 :user_service_status,"Spare")))
+					num_updates + << 1
+				_endif
+				write("New Name : ",new_path_name,newline_char)
+				_continue@next_path
+			_endif
+
+			# 2e. Finally segnode
+			_if first_sheath.prod_get_downstream().rwo_type = :mit_terminal_enclosure _orif
+			    last_sheath.prod_get_downstream().rwo_type = :mit_terminal_enclosure
+			_then
+				_if first_sheath.prod_get_downstream().rwo_type = :mit_terminal_enclosure
+				_then
+					this_sheath << first_sheath
+				_else
+					this_sheath << last_sheath
+				_endif
+
+				this_node << this_sheath.prod_get_downstream()
+				fb << a_path.fiber_propagations.select(predicate.eq(:sheath_id,this_sheath.id))
+				fn << ("000"+write_string(fb.an_element().fiber_number)).reversed().slice(1,3).reversed()
+
+				# 5 Jan, modified by GP. Fixed original path name generated to
+				# CV standard.
+				desc << a_path.rwuk_first_propagation_record.rwuk_lightpath_list_string
+				my_port << desc.split_by(" ")[3]
+				_if desc.matches?("*Drawer*")
+				_then
+					my_drawer << desc.split_by(" ")[6]
+					my_shelf << desc.split_by(" ")[9]
+					my_bay << desc.split_by(" ")[12]
+					correct_path_name << my_bay.slice(2,my_bay.size-1)+"."+my_shelf.slice(2,my_shelf.size-1)+"."+my_drawer.slice(my_drawer.size-1,my_drawer.size-1)+my_port.slice(2,my_port.size-1)
+				_else
+					my_shelf << desc.split_by(" ")[6]
+					my_bay << desc.split_by(" ")[9]
+					correct_path_name << my_bay.slice(2,my_bay.size-1)+"."+my_shelf.slice(2,my_shelf.size-1)+"."+my_port.slice(2,my_port.size-1)
+				_endif
+				
+				# Confirm Segnode Specification
+				_if this_sheath.prod_get_downstream().spec_id.matches?("C-COR*")
+				_then
+					_if a_path.rwuk_lightpath_circuits.size > 0
+					_then
+						_for a_port _over this_node.all_rme_port_components().elements()
+						_loop@next_port
+							_if a_port.connected_fiber().size > 0
+							_then
+								_if write_string(a_port.connected_fiber().an_element().fiber) = write_string(fb.an_element().fiber_number)
+								_then
+									#final_path_name << a_path.name.split_by("/")[1]+"_"+a_port.rwuk_shelf_name+"."+fn
+									final_path_name << correct_path_name+"_"+a_port.rwuk_shelf_name+"."+fn
+									
+									my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																			 :user_department,"HFC",
+																			 :user_service_status,"In Service")))
+									num_updates + << 1
+								_else
+									_continue@next_port
+								_endif
+							_endif
+						_endloop
+
+						# Incase path wrong associated with circuit
+						_if final_path_name _is _unset
+						_then
+							#final_path_name << a_path.name.split_by("/")[1]+"_"+this_node.name+"."+fn
+							final_path_name << correct_path_name+"_"+this_node.name+"."+fn
+							
+							# For fiber monitoring
+							_if a_path.rwuk_lightpath_circuits.an_element().customer_name = "Fiber monitoring"
+							_then
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"Dept. 5",
+																		 :user_service_status,"In Service")))
+								num_updates + << 1
+							_else
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"HFC",
+																		 :user_service_status,"Spare")))
+								num_updates + << 1
+							_endif
+						_endif
+					_else
+						#final_path_name << a_path.name.split_by("/")[1]+"_"+this_node.name+"."+fn
+						final_path_name << correct_path_name+"_"+this_node.name+"."+fn
+						my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																 :user_department,"HFC",
+																 :user_service_status,"Spare")))
+						num_updates + << 1
+					_endif
+
+				_elif this_sheath.prod_get_downstream().spec_id.matches?("*DWDM*")
+				_then			
+					_if this_sheath.prod_get_downstream().spec_id = "ARRIS 4100 DWDM 1x4_N Dmux"
+					_then
+						_if a_path.rwuk_lightpath_circuits.size > 0
+						_then
+							# Only this case, check and update circuit name if required
+							a_circuit << a_path.rwuk_lightpath_circuits.an_element()
+							
+							_if a_circuit.circuit_name ~= this_sheath.prod_get_downstream().name+".DWDM.NONDMUX"
+							_then
+								new_name << this_sheath.prod_get_downstream().name+".DWDM.NONDMUX"
+								my_transactions.add(record_transaction.new_update(a_circuit, property_list.new_with(:circuit_name,new_name)))
+							_endif
+							
+							#final_path_name << a_path.name.split_by("/")[1]+"_"+this_node.name+".DWDM."+fn
+							final_path_name << correct_path_name+"_"+this_node.name+".DWDM."+fn
+							
+							# For fiber monitoring
+							_if a_path.rwuk_lightpath_circuits.an_element().customer_name = "Fiber monitoring"
+							_then
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"Dept. 5",
+																		 :user_service_status,"In Service")))
+								num_updates + << 1
+							_else
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"HFC",
+																		 :user_service_status,"In Service")))
+								num_updates + << 1
+							_endif 
+						_endif
+					_else
+						d_nodename << this_node.name.slice(1,3)+"*"+this_node.name.slice(this_node.name.size-1,this_node.name.size)+"_"+write_string(this_node.spec_id.reversed()[3])
+						
+						_if a_path.rwuk_lightpath_circuits.size > 0
+						_then
+							#final_path_name << a_path.name.split_by("/")[1]+"_"+d_nodename+".DWDM"
+							final_path_name << correct_path_name+"_"+d_nodename+".DWDM"
+							
+							# For fiber monitoring
+							_if a_path.rwuk_lightpath_circuits.an_element().customer_name = "Fiber monitoring"
+							_then
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"Dept. 5",
+																		 :user_service_status,"In Service")))
+								num_updates + << 1
+							_else
+								my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																		 :user_department,"HFC",
+																		 :user_service_status,"In Service")))
+								num_updates + << 1
+							_endif 
+						_endif
+					_endif
+					
+					_if final_path_name _is _unset 
+					_then
+						#final_path_name << a_path.name.split_by("/")[1]+"_"+this_node.name+"."+fn
+						final_path_name << correct_path_name+"_"+this_node.name+"."+fn
+						my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																 :user_department,"HFC",
+																 :user_service_status,"Spare")))
+						num_updates + << 1
+					_endif	
+					
+				_elif this_sheath.prod_get_downstream().spec_id.matches?("*WDM*")
+				_then
+					_if a_path.rwuk_lightpath_circuits.size > 0
+					_then
+						final_path_name << new_path_name
+						# For fiber monitoring
+						_if a_path.rwuk_lightpath_circuits.an_element().customer_name = "Fiber monitoring"
+						_then
+							my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																	 :user_department,"Dept. 5",
+																	 :user_service_status,"In Service")))
+							num_updates + << 1
+						_else
+							my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																	 :user_department,"HFC",
+																	 :user_service_status,"In Service")))
+							num_updates + << 1
+						_endif
+					_endif
+					
+					_if final_path_name _is _unset 
+					_then
+						#final_path_name << a_path.name.split_by("/")[1]+"_"+this_node.name+"."+fn
+						final_path_name << correct_path_name+"_"+this_node.name+"."+fn
+						my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+																 :user_department,"HFC",
+																 :user_service_status,"Spare")))
+						num_updates + << 1
+					_endif
+				_endif
+			_endif
+			
+			_if final_path_name _is _unset 
+			_then
+				final_path_name << new_path_name
+				etp.log_error(:warning,a_path,write_string("Failed to update path name, only replace '/' to '_'"))
+				num_failed + << 1
+			_endif
+			
+			write("New Name : ",final_path_name,newline_char)
+#			#out_stream.write("New Name :",tab_char,final_path_name, newline_char, newline_char)
+#
+
+#			my_transactions.add(record_transaction.new_update(a_path, property_list.new_with(:name,final_path_name,
+#												:user_department,"HFC")))
+#			num_updates + << 1
+		_endloop
+	_endloop
+	
+		_if _not my_transactions.empty?
+		_then
+			results << dataset_transaction.new(my_transactions, write_string("Rename ",my_transactions.size, " path name...")).run()
+		_endif
+		
+#		etp.log_error(:info,_unset,write_string(num_updates," path name renamed."))
+		_self.show_message("Number of updates : ",num_updates,newline_char,
+				   "Number of failed : ",num_failed)
+		#out_stream.close()
+_endmethod
+$
+prod_lite.register_tool(:fiber,:cv_rename_path,:|cv_rename_path()|,_unset,"Production | Sheath - Autopath Naming")
+$
