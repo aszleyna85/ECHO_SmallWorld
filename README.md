@@ -68,7 +68,7 @@ In telecom and utility projects, Magik scripts often run inside Smallworld GIS t
 ---
 
 ## 📬 Contact
-- **LinkedIn:** [Nor Aslinawati Abdul Majid](https://www.linkedin.com/in/aslina-majid)
+- **LinkedIn:** [Nor Aslinawati Abdul Majid](https://www.linkedin.com/in/nor-aslinawati-abdul-majid/)
 - **Email:** aslina.majid@yahoo.com
 - **GitHub:** [github.com/aszleyna85](https://github.com/aszleyna85)
 
